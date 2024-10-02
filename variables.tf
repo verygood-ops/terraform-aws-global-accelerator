@@ -126,9 +126,19 @@ variable "endpoint_groups" {
     endpoints = list(object({
       endpoint_id                    = string
       weight                         = number
-      client_ip_preservation_enabled = optional(bool, true) # Set default to true
+      client_ip_preservation_enabled = optional(bool, true)
+      health_check_port              = optional(number)
+      health_check_protocol          = optional(string)
+      health_check_path              = optional(string)
+      health_check_interval_seconds  = optional(number)
+      threshold_count                = optional(number)
     }))
-    traffic_dial_percentage = number
+    traffic_dial_percentage       = number
+    health_check_port             = optional(number)
+    health_check_protocol         = optional(string)
+    health_check_path             = optional(string)
+    health_check_interval_seconds = optional(number)
+    threshold_count               = optional(number)
   }))
 }
 

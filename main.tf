@@ -6,13 +6,23 @@ locals {
       port_ranges = [for from_port, to_port in var.listener_ports : { from_port = from_port, to_port = to_port }]
       endpoint_groups = {
         for region, group in var.endpoint_groups : region => {
-          endpoint_group_region   = region
-          traffic_dial_percentage = group.traffic_dial_percentage
+          endpoint_group_region         = region
+          traffic_dial_percentage       = group.traffic_dial_percentage
+          health_check_port             = group.health_check_port
+          health_check_protocol         = group.health_check_protocol
+          health_check_path             = group.health_check_path
+          health_check_interval_seconds = group.health_check_interval_seconds
+          threshold_count               = group.threshold_count
           endpoint_configuration = [
             for endpoint in group.endpoints : {
               endpoint_id                    = endpoint.endpoint_id
               weight                         = endpoint.weight
-              client_ip_preservation_enabled = coalesce(endpoint.client_ip_preservation_enabled, true) # Use coalesce to default to true if not specified
+              client_ip_preservation_enabled = coalesce(endpoint.client_ip_preservation_enabled, true)
+              health_check_port              = coalesce(endpoint.health_check_port, group.health_check_port)
+              health_check_protocol          = coalesce(endpoint.health_check_protocol, group.health_check_protocol)
+              health_check_path              = coalesce(endpoint.health_check_path, group.health_check_path)
+              health_check_interval_seconds  = coalesce(endpoint.health_check_interval_seconds, group.health_check_interval_seconds)
+              threshold_count                = coalesce(endpoint.threshold_count, group.threshold_count)
             }
           ]
         }
@@ -31,13 +41,12 @@ locals {
         traffic_dial_percentage = ev.traffic_dial_percentage
         endpoint_configuration  = ev.endpoint_configuration
 
-        # Preserve existing fields with default values
-        health_check_port             = try(ev.health_check_port, null)
-        health_check_protocol         = try(ev.health_check_protocol, null)
-        health_check_path             = try(ev.health_check_path, null)
-        health_check_interval_seconds = try(ev.health_check_interval_seconds, null)
-        threshold_count               = try(ev.threshold_count, null)
-        port_override                 = try(ev.port_override, [])
+        health_check_port             = ev.health_check_port
+        health_check_protocol         = ev.health_check_protocol
+        health_check_path             = ev.health_check_path
+        health_check_interval_seconds = ev.health_check_interval_seconds
+        threshold_count               = ev.threshold_count
+        port_override                 = []
       }
     ]
   ])
