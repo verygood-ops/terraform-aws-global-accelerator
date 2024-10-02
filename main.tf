@@ -1,21 +1,44 @@
 locals {
-  listener_endpoints = flatten([for lk, lv in var.listeners : [
-    for ek, ev in lv.endpoint_groups : {
-      listerner_name = lk
-      endpoint_group = ek
-
-      endpoint_group_region         = try(ev.endpoint_group_region, null)
-      health_check_port             = try(ev.health_check_port, null)
-      health_check_protocol         = try(ev.health_check_protocol, null)
-      health_check_path             = try(ev.health_check_path, null)
-      health_check_interval_seconds = try(ev.health_check_interval_seconds, null)
-      threshold_count               = try(ev.threshold_count, null)
-      traffic_dial_percentage       = try(ev.traffic_dial_percentage, null)
-
-      endpoint_configuration = try(ev.endpoint_configuration, [])
-
-      port_override = try(ev.port_override, [])
+  # Transform the new input structure into the format expected by the rest of the module
+  listeners = {
+    "main" = {
+      protocol    = "TCP"
+      port_ranges = [for from_port, to_port in var.listener_ports : { from_port = from_port, to_port = to_port }]
+      endpoint_groups = {
+        for region, group in var.endpoint_groups : region => {
+          endpoint_group_region   = region
+          traffic_dial_percentage = group.traffic_dial_percentage
+          endpoint_configuration = [
+            for endpoint in group.endpoints : {
+              endpoint_id                    = endpoint.endpoint_id
+              weight                         = endpoint.weight
+              client_ip_preservation_enabled = coalesce(endpoint.client_ip_preservation_enabled, true) # Use coalesce to default to true if not specified
+            }
+          ]
+        }
+      }
     }
+  }
+
+  # Flatten the listeners and endpoint groups for use in the existing resources
+  listener_endpoints = flatten([
+    for lk, lv in local.listeners : [
+      for ek, ev in lv.endpoint_groups : {
+        listerner_name = lk
+        endpoint_group = ek
+
+        endpoint_group_region   = ev.endpoint_group_region
+        traffic_dial_percentage = ev.traffic_dial_percentage
+        endpoint_configuration  = ev.endpoint_configuration
+
+        # Preserve existing fields with default values
+        health_check_port             = try(ev.health_check_port, null)
+        health_check_protocol         = try(ev.health_check_protocol, null)
+        health_check_path             = try(ev.health_check_path, null)
+        health_check_interval_seconds = try(ev.health_check_interval_seconds, null)
+        threshold_count               = try(ev.threshold_count, null)
+        port_override                 = try(ev.port_override, [])
+      }
     ]
   ])
 }
@@ -27,7 +50,7 @@ locals {
 resource "aws_globalaccelerator_accelerator" "this" {
   count = var.create ? 1 : 0
 
-  name            = var.name
+  name            = "${var.infra_environment}-${var.deployment_environment}-${var.data_environment}-${var.name}"
   ip_address_type = var.ip_address_type
   enabled         = var.enabled
 
@@ -40,7 +63,14 @@ resource "aws_globalaccelerator_accelerator" "this" {
     }
   }
 
-  tags = var.tags
+  tags = {
+    "vgs:service"     = var.service
+    "vgs:product"     = var.product
+    "vgs:team"        = var.team
+    "vgs:environment" = "${var.infra_environment}/${var.deployment_environment}/${var.data_environment}"
+    "vgs:tenant"      = var.tenant
+
+  }
 }
 
 ################################################################################
@@ -48,7 +78,7 @@ resource "aws_globalaccelerator_accelerator" "this" {
 ################################################################################
 
 resource "aws_globalaccelerator_listener" "this" {
-  for_each = { for k, v in var.listeners : k => v if var.create && var.create_listeners }
+  for_each = { for k, v in local.listeners : k => v if var.create && var.create_listeners }
 
   accelerator_arn = aws_globalaccelerator_accelerator.this[0].id
   client_affinity = lookup(each.value, "client_affinity", null)
@@ -70,7 +100,7 @@ resource "aws_globalaccelerator_listener" "this" {
 }
 
 ################################################################################
-# Endpoing Group(s)
+# Endpoint Group(s)
 ################################################################################
 
 resource "aws_globalaccelerator_endpoint_group" "this" {
@@ -89,7 +119,7 @@ resource "aws_globalaccelerator_endpoint_group" "this" {
   dynamic "endpoint_configuration" {
     for_each = [for e in each.value.endpoint_configuration : e if can(e.endpoint_id)]
     content {
-      client_ip_preservation_enabled = try(endpoint_configuration.value.client_ip_preservation_enabled, null)
+      client_ip_preservation_enabled = coalesce(endpoint_configuration.value.client_ip_preservation_enabled, true) # Use coalesce to default to true if not specified
       endpoint_id                    = endpoint_configuration.value.endpoint_id
       weight                         = try(endpoint_configuration.value.weight, null)
     }

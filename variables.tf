@@ -1,3 +1,39 @@
+
+################################################################################
+# VGS vars
+################################################################################
+
+variable "infra_environment" {
+  description = "VGS infra environment: dev|prod etc"
+  type        = string
+}
+
+variable "deployment_environment" {
+  description = "VGS deployment environment: vault|genpop"
+  type        = string
+}
+
+variable "data_environment" {
+  description = "VGS data environment: sandbox|live etc"
+  type        = string
+}
+
+variable "service" {
+  type = string
+}
+
+variable "product" {
+  type = string
+}
+
+variable "team" {
+  type = string
+}
+
+variable "tenant" {
+  type = string
+}
+
 variable "create" {
   description = "Controls if resources should be created (affects nearly all resources)"
   type        = bool
@@ -66,12 +102,6 @@ variable "create_listeners" {
   default     = true
 }
 
-variable "listeners" {
-  description = "A map of listener defintions to create"
-  type        = any
-  default     = {}
-}
-
 variable "listeners_timeouts" {
   description = "Create, update, and delete timeout configurations for the listeners"
   type        = map(string)
@@ -88,4 +118,21 @@ variable "endpoint_groups_timeouts" {
   description = "Create, update, and delete timeout configurations for the endpoint groups"
   type        = map(string)
   default     = {}
+}
+
+variable "endpoint_groups" {
+  description = "Map of endpoint groups configurations"
+  type = map(object({
+    endpoints = list(object({
+      endpoint_id                    = string
+      weight                         = number
+      client_ip_preservation_enabled = optional(bool, true) # Set default to true
+    }))
+    traffic_dial_percentage = number
+  }))
+}
+
+variable "listener_ports" {
+  description = "Map of listener ports (from_port to to_port)"
+  type        = map(number)
 }
