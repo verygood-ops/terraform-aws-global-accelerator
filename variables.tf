@@ -156,17 +156,6 @@ variable "port_override" {
   default     = {}
 }
 
-variable "listener_ports" {
-  description = "Map of listener ports (from_port to to_port)"
-  type        = map(number)
-}
-
-variable "port_override" {
-  description = "Map of port overrides (listener_port to endpoint_port)"
-  type        = map(number)
-  default     = {}
-}
-
 variable "client_ip_preservation_enabled" {
   description = "Indicates whether client IP preservation is enabled for the endpoint group"
   type        = bool
