@@ -1,3 +1,25 @@
+locals {
+  listener_endpoints = flatten([for lk, lv in var.listeners : [
+    for ek, ev in lv.endpoint_groups : {
+      listerner_name = lk
+      endpoint_group = ek
+
+      endpoint_group_region         = try(ev.endpoint_group_region, null)
+      health_check_port             = try(ev.health_check_port, null)
+      health_check_protocol         = try(ev.health_check_protocol, null)
+      health_check_path             = try(ev.health_check_path, null)
+      health_check_interval_seconds = try(ev.health_check_interval_seconds, null)
+      threshold_count               = try(ev.threshold_count, null)
+      traffic_dial_percentage       = try(ev.traffic_dial_percentage, null)
+
+      endpoint_configuration = try(ev.endpoint_configuration, [])
+
+      port_override = try(ev.port_override, [])
+    }
+    ]
+  ])
+}
+
 ################################################################################
 # Accelerator
 ################################################################################
@@ -7,7 +29,6 @@ resource "aws_globalaccelerator_accelerator" "this" {
 
   name            = var.name
   ip_address_type = var.ip_address_type
-  ip_addresses    = var.ip_addresses
   enabled         = var.enabled
 
   dynamic "attributes" {
@@ -49,24 +70,24 @@ resource "aws_globalaccelerator_listener" "this" {
 }
 
 ################################################################################
-# Endpoint Group(s)
+# Endpoing Group(s)
 ################################################################################
 
 resource "aws_globalaccelerator_endpoint_group" "this" {
-  for_each = { for k, v in var.listeners : k => v if var.create && var.create_listeners && length(lookup(var.listeners[k], "endpoint_group", {})) > 0 }
+  for_each = { for v in local.listener_endpoints : "${v.listerner_name}-${v.endpoint_group}" => v if var.create && var.create_listeners }
 
-  listener_arn = aws_globalaccelerator_listener.this[each.key].id
+  listener_arn = aws_globalaccelerator_listener.this[each.value.listerner_name].id
 
-  endpoint_group_region         = try(each.value.endpoint_group.endpoint_group_region, null)
-  health_check_interval_seconds = try(each.value.endpoint_group.health_check_interval_seconds, null)
-  health_check_path             = try(each.value.endpoint_group.health_check_path, null)
-  health_check_port             = try(each.value.endpoint_group.health_check_port, null)
-  health_check_protocol         = try(each.value.endpoint_group.health_check_protocol, null)
-  threshold_count               = try(each.value.endpoint_group.threshold_count, null)
-  traffic_dial_percentage       = try(each.value.endpoint_group.traffic_dial_percentage, null)
+  endpoint_group_region         = each.value.endpoint_group_region
+  health_check_interval_seconds = each.value.health_check_interval_seconds
+  health_check_path             = each.value.health_check_path
+  health_check_port             = each.value.health_check_port
+  health_check_protocol         = each.value.health_check_protocol
+  threshold_count               = each.value.threshold_count
+  traffic_dial_percentage       = each.value.traffic_dial_percentage
 
   dynamic "endpoint_configuration" {
-    for_each = [for e in try(each.value.endpoint_group.endpoint_configuration, []) : e if can(e.endpoint_id)]
+    for_each = [for e in each.value.endpoint_configuration : e if can(e.endpoint_id)]
     content {
       client_ip_preservation_enabled = try(endpoint_configuration.value.client_ip_preservation_enabled, null)
       endpoint_id                    = endpoint_configuration.value.endpoint_id
@@ -75,7 +96,7 @@ resource "aws_globalaccelerator_endpoint_group" "this" {
   }
 
   dynamic "port_override" {
-    for_each = can(each.value.endpoint_group.port_override) ? each.value.endpoint_group.port_override : []
+    for_each = each.value.port_override
     content {
       endpoint_port = port_override.value.endpoint_port
       listener_port = port_override.value.listener_port
