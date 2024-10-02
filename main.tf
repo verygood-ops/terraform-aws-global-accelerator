@@ -34,7 +34,7 @@ locals {
   listener_endpoints = flatten([
     for lk, lv in local.listeners : [
       for ek, ev in lv.endpoint_groups : {
-        listerner_name = lk
+        listener_name = lk
         endpoint_group = ek
 
         endpoint_group_region   = ev.endpoint_group_region
