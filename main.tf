@@ -108,13 +108,13 @@ resource "aws_globalaccelerator_endpoint_group" "this" {
 
   listener_arn = aws_globalaccelerator_listener.this[each.value.listerner_name].id
 
-  endpoint_group_region         = each.value.endpoint_group_region
-  health_check_interval_seconds = each.value.health_check_interval_seconds
-  health_check_path             = each.value.health_check_path
-  health_check_port             = each.value.health_check_port
-  health_check_protocol         = each.value.health_check_protocol
-  threshold_count               = each.value.threshold_count
-  traffic_dial_percentage       = each.value.traffic_dial_percentage
+  endpoint_group_region         = try(each.value.endpoint_group_region, null)
+  health_check_interval_seconds = try(each.value.health_check_interval_seconds, null)
+  health_check_path             = try(each.value.health_check_path, null)
+  health_check_port             = try(each.value.health_check_port, null)
+  health_check_protocol         = try(each.value.health_check_protocol, null)
+  threshold_count               = try(each.value.threshold_count, null)
+  traffic_dial_percentage       = try(each.value.traffic_dial_percentage, null)
 
   dynamic "endpoint_configuration" {
     for_each = [for e in each.value.endpoint_configuration : e if can(e.endpoint_id)]
