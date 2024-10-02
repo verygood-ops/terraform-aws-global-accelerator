@@ -49,7 +49,12 @@ inputs = {
           weight      = 40
         },
       ]
-      traffic_dial_percentage = 100
+      traffic_dial_percentage        = 100
+      health_check_port              = 5555
+      health_check_protocol          = "HTTP"
+      health_check_path              = "/health"
+      health_check_interval_seconds  = 10
+      threshold_count                = 3
     },
     "us-east-2" = {
       endpoints               = []
@@ -114,7 +119,7 @@ No modules.
 | <a name="input_data_environment"></a> [data\_environment](#input\_data\_environment) | VGS data environment: sandbox\|live etc | `string` | n/a | yes |
 | <a name="input_deployment_environment"></a> [deployment\_environment](#input\_deployment\_environment) | VGS deployment environment: vault\|genpop | `string` | n/a | yes |
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Indicates whether the accelerator is enabled. Defaults to `true`. Valid values: `true`, `false` | `bool` | `true` | no |
-| <a name="input_endpoint_groups"></a> [endpoint\_groups](#input\_endpoint\_groups) | Map of endpoint groups configurations | <pre>map(object({<br>    endpoints = list(object({<br>      endpoint_id                    = string<br>      weight                         = number<br>      client_ip_preservation_enabled = optional(bool, true) # Set default to true<br>    }))<br>    traffic_dial_percentage = number<br>  }))</pre> | n/a | yes |
+| <a name="input_endpoint_groups"></a> [endpoint\_groups](#input\_endpoint\_groups) | Map of endpoint groups configurations | <pre>map(object({<br>    endpoints = list(object({<br>      endpoint_id                    = string<br>      weight                         = number<br>      client_ip_preservation_enabled = optional(bool, true)<br>      health_check_port              = optional(number)<br>      health_check_protocol          = optional(string)<br>      health_check_path              = optional(string)<br>      health_check_interval_seconds  = optional(number)<br>      threshold_count                = optional(number)<br>    }))<br>    traffic_dial_percentage       = number<br>    health_check_port             = optional(number)<br>    health_check_protocol         = optional(string)<br>    health_check_path             = optional(string)<br>    health_check_interval_seconds = optional(number)<br>    threshold_count               = optional(number)<br>  }))</pre> | n/a | yes |
 | <a name="input_endpoint_groups_timeouts"></a> [endpoint\_groups\_timeouts](#input\_endpoint\_groups\_timeouts) | Create, update, and delete timeout configurations for the endpoint groups | `map(string)` | `{}` | no |
 | <a name="input_flow_logs_enabled"></a> [flow\_logs\_enabled](#input\_flow\_logs\_enabled) | Indicates whether flow logs are enabled. Defaults to `false` | `bool` | `false` | no |
 | <a name="input_flow_logs_s3_bucket"></a> [flow\_logs\_s3\_bucket](#input\_flow\_logs\_s3\_bucket) | The name of the Amazon S3 bucket for the flow logs. Required if `flow_logs_enabled` is `true` | `string` | `null` | no |
