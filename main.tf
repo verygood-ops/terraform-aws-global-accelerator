@@ -113,7 +113,7 @@ resource "aws_globalaccelerator_listener" "this" {
 ################################################################################
 
 resource "aws_globalaccelerator_endpoint_group" "this" {
-  for_each = { for v in local.listener_endpoints : "${v.listerner_name}-${v.endpoint_group}" => v if var.create && var.create_listeners }
+  for_each = { for v in local.listener_endpoints : "${v.listener_name}-${v.endpoint_group}" => v if var.create && var.create_listeners }
 
   listener_arn = aws_globalaccelerator_listener.this[each.value.listerner_name].id
 
