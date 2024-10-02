@@ -115,7 +115,7 @@ resource "aws_globalaccelerator_listener" "this" {
 resource "aws_globalaccelerator_endpoint_group" "this" {
   for_each = { for v in local.listener_endpoints : "${v.listener_name}-${v.endpoint_group}" => v if var.create && var.create_listeners }
 
-  listener_arn = aws_globalaccelerator_listener.this[each.value.listerner_name].id
+  listener_arn = aws_globalaccelerator_listener.this[each.value.listener_name].id
 
   endpoint_group_region         = try(each.value.endpoint_group_region, null)
   health_check_interval_seconds = try(each.value.health_check_interval_seconds, null)
