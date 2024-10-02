@@ -6,23 +6,26 @@ locals {
       port_ranges = [for from_port, to_port in var.listener_ports : { from_port = from_port, to_port = to_port }]
       endpoint_groups = {
         for region, group in var.endpoint_groups : region => {
-          endpoint_group_region         = region
-          traffic_dial_percentage       = group.traffic_dial_percentage
-          health_check_port             = group.health_check_port
-          health_check_protocol         = group.health_check_protocol
-          health_check_path             = group.health_check_path
-          health_check_interval_seconds = group.health_check_interval_seconds
-          threshold_count               = group.threshold_count
+          endpoint_group_region          = region
+          traffic_dial_percentage        = group.traffic_dial_percentage
+          client_ip_preservation_enabled = coalesce(group.client_ip_preservation_enabled, var.client_ip_preservation_enabled)
+          health_check_port              = coalesce(group.health_check_port, var.health_check_port)
+          health_check_protocol          = coalesce(group.health_check_protocol, var.health_check_protocol)
+          health_check_path              = coalesce(group.health_check_path, var.health_check_path)
+          health_check_interval_seconds  = coalesce(group.health_check_interval_seconds, var.health_check_interval_seconds)
+          threshold_count                = coalesce(group.threshold_count, var.threshold_count)
+          port_override                  = coalesce(group.port_override, var.port_override)
           endpoint_configuration = [
             for endpoint in group.endpoints : {
               endpoint_id                    = endpoint.endpoint_id
               weight                         = endpoint.weight
-              client_ip_preservation_enabled = coalesce(endpoint.client_ip_preservation_enabled, true)
-              health_check_port              = coalesce(endpoint.health_check_port, group.health_check_port)
-              health_check_protocol          = coalesce(endpoint.health_check_protocol, group.health_check_protocol)
-              health_check_path              = coalesce(endpoint.health_check_path, group.health_check_path)
-              health_check_interval_seconds  = coalesce(endpoint.health_check_interval_seconds, group.health_check_interval_seconds)
-              threshold_count                = coalesce(endpoint.threshold_count, group.threshold_count)
+              client_ip_preservation_enabled = coalesce(endpoint.client_ip_preservation_enabled, group.client_ip_preservation_enabled, var.client_ip_preservation_enabled)
+              health_check_port              = coalesce(endpoint.health_check_port, group.health_check_port, var.health_check_port)
+              health_check_protocol          = coalesce(endpoint.health_check_protocol, group.health_check_protocol, var.health_check_protocol)
+              health_check_path              = coalesce(endpoint.health_check_path, group.health_check_path, var.health_check_path)
+              health_check_interval_seconds  = coalesce(endpoint.health_check_interval_seconds, group.health_check_interval_seconds, var.health_check_interval_seconds)
+              threshold_count                = coalesce(endpoint.threshold_count, group.threshold_count, var.threshold_count)
+              port_override                  = coalesce(endpoint.port_override, group.port_override, var.port_override)
             }
           ]
         }
@@ -34,24 +37,28 @@ locals {
   listener_endpoints = flatten([
     for lk, lv in local.listeners : [
       for ek, ev in lv.endpoint_groups : {
-        listener_name = lk
+        listener_name  = lk
         endpoint_group = ek
 
-        endpoint_group_region   = ev.endpoint_group_region
-        traffic_dial_percentage = ev.traffic_dial_percentage
-        endpoint_configuration  = ev.endpoint_configuration
-
-        health_check_port             = ev.health_check_port
-        health_check_protocol         = ev.health_check_protocol
-        health_check_path             = ev.health_check_path
-        health_check_interval_seconds = ev.health_check_interval_seconds
-        threshold_count               = ev.threshold_count
-        port_override                 = []
+        endpoint_group_region          = ev.endpoint_group_region
+        traffic_dial_percentage        = ev.traffic_dial_percentage
+        client_ip_preservation_enabled = ev.client_ip_preservation_enabled
+        health_check_port              = ev.health_check_port
+        health_check_protocol          = ev.health_check_protocol
+        health_check_path              = ev.health_check_path
+        health_check_interval_seconds  = ev.health_check_interval_seconds
+        threshold_count                = ev.threshold_count
+        endpoint_configuration         = ev.endpoint_configuration
+        port_override = [
+          for listener_port, endpoint_port in ev.port_override : {
+            listener_port = listener_port
+            endpoint_port = endpoint_port
+          }
+        ]
       }
     ]
   ])
 }
-
 ################################################################################
 # Accelerator
 ################################################################################
